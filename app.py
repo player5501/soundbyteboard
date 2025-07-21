@@ -1,16 +1,16 @@
-from flask import Flask, request, jsonify, send_from_directory, render_template_string
-from pathlib import Path
 import pygame
 import threading
 import os
 import argparse
+from flask import Flask, request, jsonify, render_template_string
+from pathlib import Path
 
 app = Flask(__name__)
 pygame.mixer.init()
-current_channel = None
+CURRENT_CHANNEL = None
 
 def play_audio(filename):
-    global current_channel
+    global CURRENT_CHANNEL
     # Prevent directory traversal
     safe_path = os.path.normpath(os.path.join(SOUNDS_DIR, filename))
     if not safe_path.startswith(os.path.abspath(SOUNDS_DIR)):
@@ -18,7 +18,7 @@ def play_audio(filename):
         return
     if os.path.exists(safe_path):
         sound = pygame.mixer.Sound(safe_path)
-        current_channel = sound.play()
+        CURRENT_CHANNEL = sound.play()
     else:
         print(f"File not found: {safe_path}")
 
@@ -33,9 +33,9 @@ def play_sound():
 
 @app.route('/stop', methods=['POST'])
 def stop_sound():
-    global current_channel
-    if current_channel:
-        current_channel.stop()
+    global CURRENT_CHANNEL
+    if CURRENT_CHANNEL:
+        CURRENT_CHANNEL.stop()
         return jsonify({'status': 'Playback stopped'})
     else:
         return jsonify({'status': 'No sound is playing'})
