@@ -1,9 +1,9 @@
-import pygame
 import threading
 import os
 import argparse
-from flask import Flask, request, jsonify, render_template_string
 from pathlib import Path
+import pygame
+from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 pygame.mixer.init()
@@ -37,8 +37,7 @@ def stop_sound():
     if CURRENT_CHANNEL:
         CURRENT_CHANNEL.stop()
         return jsonify({'status': 'Playback stopped'})
-    else:
-        return jsonify({'status': 'No sound is playing'})
+    return jsonify({'status': 'No sound is playing'})
 
 
 @app.route('/stopall', methods=['POST'])
@@ -52,13 +51,13 @@ def index():
     return render_template_string(INDEX_HTML)
 
 def is_audio_file(filename):
-    AUDIO_EXTENSIONS = {'.wav', '.mp3', '.ogg', '.flac', '.aac', '.m4a'}
-    return Path(filename).suffix.lower() in AUDIO_EXTENSIONS
+    audio_extensions = {'.wav', '.mp3', '.ogg', '.flac', '.aac', '.m4a'}
+    return Path(filename).suffix.lower() in audio_extensions
 
 @app.route('/sounds')
 def list_sounds():
     sounds = []
-    for root, dirs, files in os.walk(SOUNDS_DIR):
+    for root, files in os.walk(SOUNDS_DIR):
         for file in files:
             if is_audio_file(file):
                 full_path = os.path.join(root, file)
