@@ -57,7 +57,7 @@ def is_audio_file(filename):
 @app.route('/sounds')
 def list_sounds():
     sounds = []
-    for root, files in os.walk(SOUNDS_DIR):
+    for root, dirs, files in os.walk(SOUNDS_DIR):
         for file in files:
             if is_audio_file(file):
                 full_path = os.path.join(root, file)
