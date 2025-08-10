@@ -555,7 +555,7 @@ function toggleUpload() {
         uploadBtn.style.borderColor = '#ff4757';
     } else {
         uploadSection.style.display = 'none';
-        uploadBtn.textContent = '📁 Upload';
+        uploadBtn.textContent = 'Upload';
         uploadBtn.style.background = 'linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%)';
         uploadBtn.style.borderColor = '#444';
     }
