@@ -323,10 +323,7 @@ INDEX_HTML = '''
             background: linear-gradient(135deg, #00cc6a 0%, #00aa55 100%);
         }
 
-        .organize-mode .sound-card {
-            border-color: #00ff88;
-            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.2);
-        }
+
 
         .move-modal {
             display: none;
@@ -508,20 +505,7 @@ INDEX_HTML = '''
             margin-top: 20px;
         }
 
-        .sound-card {
-            background: #2d2d44;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-            transition: all 0.3s ease;
-            border: 1px solid #444;
-        }
 
-        .sound-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
-            border-color: #00ff88;
-        }
 
         .sound-btn {
             width: 100%;
@@ -748,9 +732,6 @@ async function fetchSounds() {
             soundsGrid.className = 'sounds-grid';
             
                         for (const sound of sounds) {
-                const card = document.createElement('div');
-                card.className = 'sound-card';
-                
                 const btn = document.createElement('button');
                 btn.textContent = sound.display_name;
                 btn.className = "sound-btn";
@@ -762,8 +743,7 @@ async function fetchSounds() {
                     }
                 };
                 
-                card.appendChild(btn);
-                soundsGrid.appendChild(card);
+                soundsGrid.appendChild(btn);
             }
             
             folderSection.appendChild(soundsGrid);
