@@ -88,20 +88,36 @@ def upload_file():
 
 @app.route('/sounds')
 def list_sounds():
-    sounds = []
+    sounds_by_folder = {}
+    
     for root, dirs, files in os.walk(SOUNDS_DIR):
         for file in files:
             if is_audio_file(file):
                 full_path = os.path.join(root, file)
                 rel_path = os.path.relpath(full_path, SOUNDS_DIR)
-                # Store both the display name (just filename without extension) and the full path for playing
                 display_name = os.path.splitext(file)[0]  # Remove file extension
-                sounds.append({
+                # Remove dashes and underscores, replace with spaces
+                display_name = display_name.replace('-', ' ').replace('_', ' ')
+                
+                # Determine folder name (use "Main" for files in root directory)
+                if root == SOUNDS_DIR:
+                    folder_name = "Main"
+                else:
+                    folder_name = os.path.basename(root)
+                
+                if folder_name not in sounds_by_folder:
+                    sounds_by_folder[folder_name] = []
+                
+                sounds_by_folder[folder_name].append({
                     'display_name': display_name,
                     'full_path': rel_path
                 })
-    sounds.sort(key=lambda x: x['display_name'])
-    return jsonify(sounds)
+    
+    # Sort files within each folder and sort folders
+    for folder in sounds_by_folder:
+        sounds_by_folder[folder].sort(key=lambda x: x['display_name'])
+    
+    return jsonify(sounds_by_folder)
 
 
 INDEX_HTML = '''
@@ -284,6 +300,21 @@ INDEX_HTML = '''
             background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
             border-color: #00ff88;
             color: #1a1a2e;
+        }
+
+        .folder-section {
+            margin-bottom: 40px;
+        }
+
+        .folder-header {
+            color: #00ff88;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #444;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
         .sounds-grid {
@@ -472,37 +503,62 @@ async function fetchSounds() {
     
     try {
         const res = await fetch('/sounds');
-        const sounds = await res.json();
+        const soundsByFolder = await res.json();
         
-        if (sounds.length === 0) {
+        if (Object.keys(soundsByFolder).length === 0) {
             list.innerHTML = `
                 <div class="empty-state">
-                    <h3>🎵 No sounds yet</h3>
+                    <h3>No sounds yet</h3>
                     <p>Upload your first audio file to get started!</p>
                 </div>
             `;
             return;
         }
         
-        list.innerHTML = '<div class="sounds-grid"></div>';
-        const grid = list.querySelector('.sounds-grid');
+        list.innerHTML = '';
         
-        for (const sound of sounds) {
-            const card = document.createElement('div');
-            card.className = 'sound-card';
+        // Sort folder names (Main first, then alphabetically)
+        const folderNames = Object.keys(soundsByFolder).sort((a, b) => {
+            if (a === "Main") return -1;
+            if (b === "Main") return 1;
+            return a.localeCompare(b);
+        });
+        
+        for (const folderName of folderNames) {
+            const sounds = soundsByFolder[folderName];
             
-            const btn = document.createElement('button');
-            btn.textContent = sound.display_name;
-            btn.className = "sound-btn";
-            btn.onclick = () => play(sound.full_path);
+            // Create folder section
+            const folderSection = document.createElement('div');
+            folderSection.className = 'folder-section';
             
-            card.appendChild(btn);
-            grid.appendChild(card);
+            const folderHeader = document.createElement('h3');
+            folderHeader.className = 'folder-header';
+            folderHeader.textContent = folderName;
+            folderSection.appendChild(folderHeader);
+            
+            const soundsGrid = document.createElement('div');
+            soundsGrid.className = 'sounds-grid';
+            
+            for (const sound of sounds) {
+                const card = document.createElement('div');
+                card.className = 'sound-card';
+                
+                const btn = document.createElement('button');
+                btn.textContent = sound.display_name;
+                btn.className = "sound-btn";
+                btn.onclick = () => play(sound.full_path);
+                
+                card.appendChild(btn);
+                soundsGrid.appendChild(card);
+            }
+            
+            folderSection.appendChild(soundsGrid);
+            list.appendChild(folderSection);
         }
     } catch (error) {
         list.innerHTML = `
             <div class="empty-state">
-                <h3>❌ Error loading sounds</h3>
+                <h3>Error loading sounds</h3>
                 <p>Failed to load sound files. Please try refreshing.</p>
             </div>
         `;
@@ -572,7 +628,7 @@ async function uploadFile() {
     }
     
     // Show loading state
-    uploadBtn.innerHTML = '⏳ Uploading...';
+    uploadBtn.innerHTML = 'Uploading...';
     uploadBtn.disabled = true;
     
     const formData = new FormData();
@@ -587,17 +643,17 @@ async function uploadFile() {
         const result = await response.json();
         
         if (response.ok) {
-            showMessage(`✅ File uploaded successfully: ${result.filename}`, 'success');
+            showMessage(`File uploaded successfully: ${result.filename}`, 'success');
             fileInput.value = ''; // Clear the file input
             fetchSounds(); // Refresh the sound list
         } else {
-            showMessage(`❌ Upload failed: ${result.error}`, 'error');
+            showMessage(`Upload failed: ${result.error}`, 'error');
         }
     } catch (error) {
-        showMessage(`❌ Upload failed: ${error.message}`, 'error');
+        showMessage(`Upload failed: ${error.message}`, 'error');
     } finally {
         // Reset button state
-        uploadBtn.innerHTML = '📤 Upload File';
+        uploadBtn.innerHTML = 'Upload File';
         uploadBtn.disabled = false;
     }
 }
