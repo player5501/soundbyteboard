@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 import pygame
 from flask import Flask, request, jsonify, render_template_string
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 pygame.mixer.init()
@@ -54,6 +55,37 @@ def is_audio_file(filename):
     audio_extensions = {'.wav', '.mp3', '.ogg', '.flac', '.aac', '.m4a'}
     return Path(filename).suffix.lower() in audio_extensions
 
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if not is_audio_file(file.filename):
+        return jsonify({'error': 'Invalid file type. Only audio files are allowed.'}), 400
+    
+    # Secure the filename to prevent directory traversal
+    filename = secure_filename(file.filename)
+    
+    # Ensure the file doesn't already exist, add number if it does
+    base_name = Path(filename).stem
+    extension = Path(filename).suffix
+    counter = 1
+    final_filename = filename
+    
+    while os.path.exists(os.path.join(SOUNDS_DIR, final_filename)):
+        final_filename = f"{base_name}_{counter}{extension}"
+        counter += 1
+    
+    try:
+        file.save(os.path.join(SOUNDS_DIR, final_filename))
+        return jsonify({'status': 'File uploaded successfully', 'filename': final_filename})
+    except Exception as e:
+        return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
+
 @app.route('/sounds')
 def list_sounds():
     sounds = []
@@ -77,13 +109,29 @@ INDEX_HTML = '''
         body { font-family: sans-serif; background: #222; color: #eee; margin: 40px;}
         button, .sound-btn { margin: 5px; padding: 10px 18px; background: #444; border: 1px solid #666; color: #eee; border-radius: 7px; font-size: 1em;}
         .sound-btn:hover, button:hover { background: #770099; cursor:pointer }
+        .upload-section { margin: 20px 0; padding: 20px; background: #333; border-radius: 10px; }
+        .upload-section input[type="file"] { margin: 10px 0; }
+        .upload-section button { background: #0066cc; }
+        .upload-section button:hover { background: #0052a3; }
+        .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #2d5a2d; color: #90ee90; }
+        .error { background: #5a2d2d; color: #ffb6c1; }
     </style>
 </head>
 <body>
     <h1>Soundboard</h1>
+    
+    <div class="upload-section">
+        <h3>📁 Upload Audio File</h3>
+        <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
+        <button onclick="uploadFile()">📤 Upload</button>
+        <div id="uploadMessage"></div>
+    </div>
+    
     <div>
         <button onclick="stopAll()">⏹️ Stop All</button>
         <button onclick="stop()">🛑 Stop Current</button>
+        <button onclick="fetchSounds()">🔄 Refresh List</button>
     </div>
     <ul id="sound-list"></ul>
 <script>
@@ -115,6 +163,50 @@ async function stop() {
 }
 async function stopAll() {
     await fetch('/stopall', { method: 'POST' });
+}
+
+async function uploadFile() {
+    const fileInput = document.getElementById('audioFile');
+    const messageDiv = document.getElementById('uploadMessage');
+    
+    if (!fileInput.files[0]) {
+        showMessage('Please select a file to upload.', 'error');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage(`File uploaded successfully: ${result.filename}`, 'success');
+            fileInput.value = ''; // Clear the file input
+            fetchSounds(); // Refresh the sound list
+        } else {
+            showMessage(`Upload failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showMessage(`Upload failed: ${error.message}`, 'error');
+    }
+}
+
+function showMessage(message, type) {
+    const messageDiv = document.getElementById('uploadMessage');
+    messageDiv.textContent = message;
+    messageDiv.className = `message ${type}`;
+    
+    // Clear message after 5 seconds
+    setTimeout(() => {
+        messageDiv.textContent = '';
+        messageDiv.className = 'message';
+    }, 5000);
 }
 
 window.onload = fetchSounds;
