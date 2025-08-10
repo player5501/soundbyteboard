@@ -67,6 +67,9 @@ def upload_file():
     if not is_audio_file(file.filename):
         return jsonify({'error': 'Invalid file type. Only audio files are allowed.'}), 400
     
+    # Get target folder from form data
+    target_folder = request.form.get('folder', 'Main')
+    
     # Secure the filename to prevent directory traversal
     filename = secure_filename(file.filename)
     
@@ -76,12 +79,20 @@ def upload_file():
     counter = 1
     final_filename = filename
     
-    while os.path.exists(os.path.join(SOUNDS_DIR, final_filename)):
+    # Determine target path
+    if target_folder == 'Main':
+        target_path = SOUNDS_DIR
+    else:
+        target_path = os.path.join(SOUNDS_DIR, target_folder)
+        # Create folder if it doesn't exist
+        os.makedirs(target_path, exist_ok=True)
+    
+    while os.path.exists(os.path.join(target_path, final_filename)):
         final_filename = f"{base_name}_{counter}{extension}"
         counter += 1
     
     try:
-        file.save(os.path.join(SOUNDS_DIR, final_filename))
+        file.save(os.path.join(target_path, final_filename))
         return jsonify({'status': 'File uploaded successfully', 'filename': final_filename})
     except Exception as e:
         return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
@@ -118,6 +129,65 @@ def list_sounds():
         sounds_by_folder[folder].sort(key=lambda x: x['display_name'])
     
     return jsonify(sounds_by_folder)
+
+@app.route('/move', methods=['POST'])
+def move_file():
+    data = request.get_json()
+    source_path = data.get('source_path')
+    target_folder = data.get('target_folder')
+    
+    if not source_path or not target_folder:
+        return jsonify({'error': 'Missing source_path or target_folder'}), 400
+    
+    # Validate paths to prevent directory traversal
+    source_full_path = os.path.normpath(os.path.join(SOUNDS_DIR, source_path))
+    if not source_full_path.startswith(os.path.abspath(SOUNDS_DIR)):
+        return jsonify({'error': 'Invalid source path'}), 400
+    
+    if not os.path.exists(source_full_path):
+        return jsonify({'error': 'Source file does not exist'}), 400
+    
+    # Determine target path
+    if target_folder == 'Main':
+        target_path = SOUNDS_DIR
+    else:
+        target_path = os.path.join(SOUNDS_DIR, target_folder)
+        os.makedirs(target_path, exist_ok=True)
+    
+    filename = os.path.basename(source_path)
+    target_full_path = os.path.join(target_path, filename)
+    
+    # Handle filename conflicts
+    counter = 1
+    base_name = Path(filename).stem
+    extension = Path(filename).suffix
+    
+    while os.path.exists(target_full_path):
+        new_filename = f"{base_name}_{counter}{extension}"
+        target_full_path = os.path.join(target_path, new_filename)
+        counter += 1
+    
+    try:
+        # Move the file
+        import shutil
+        shutil.move(source_full_path, target_full_path)
+        return jsonify({'status': 'File moved successfully'})
+    except Exception as e:
+        return jsonify({'error': f'Failed to move file: {str(e)}'}), 500
+
+@app.route('/folders')
+def get_folders():
+    folders = ['Main']  # Always include Main
+    try:
+        for item in os.listdir(SOUNDS_DIR):
+            item_path = os.path.join(SOUNDS_DIR, item)
+            if os.path.isdir(item_path):
+                folders.append(item)
+    except OSError as e:
+        print(f"Error reading sounds directory: {e}")
+    
+    folders.sort()
+    return jsonify(folders)
 
 
 INDEX_HTML = '''
@@ -173,6 +243,8 @@ INDEX_HTML = '''
             opacity: 0.9;
         }
 
+
+
         .content {
             padding: 30px;
         }
@@ -206,6 +278,118 @@ INDEX_HTML = '''
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .folder-select-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .folder-select-wrapper label {
+            color: #e6e6e6;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .folder-select {
+            width: 100%;
+            padding: 12px;
+            background: #2d2d44;
+            border: 1px solid #444;
+            border-radius: 8px;
+            color: #e6e6e6;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .folder-select:hover {
+            border-color: #00ff88;
+        }
+
+        .folder-select:focus {
+            outline: none;
+            border-color: #00ff88;
+            box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+        }
+
+        .organize-mode .sound-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #1a1a2e;
+            border-color: #00ff88;
+        }
+
+        .organize-mode .sound-btn:hover {
+            background: linear-gradient(135deg, #00cc6a 0%, #00aa55 100%);
+        }
+
+        .organize-mode .sound-card {
+            border-color: #00ff88;
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.2);
+        }
+
+        .move-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .move-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #2d2d44;
+            border: 1px solid #444;
+            border-radius: 12px;
+            padding: 30px;
+            min-width: 400px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .move-modal h3 {
+            color: #00ff88;
+            margin-bottom: 20px;
+            font-size: 1.3rem;
+        }
+
+        .move-modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .move-modal-buttons button {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .move-modal-buttons .cancel-btn {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+            color: white;
+            border: none;
+        }
+
+        .move-modal-buttons .move-confirm-btn {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: #1a1a2e;
+            border: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .file-input-wrapper {
@@ -477,22 +661,46 @@ INDEX_HTML = '''
         <div class="content">
             <div class="controls">
                 <button class="control-btn success" onclick="fetchSounds()">Refresh</button>
-                <button class="control-btn" onclick="stop()">Stop Current</button>
                 <button class="control-btn danger" onclick="stopAll()">Stop All</button>
                 <button class="control-btn" onclick="toggleUpload()">Upload</button>
+                <button class="control-btn" onclick="toggleOrganize()" id="organizeBtn">Organize</button>
             </div>
-            
-            <div class="upload-section">
+    
+    <div class="upload-section">
                 <h3>Upload Audio File</h3>
+                <div class="folder-select-wrapper">
+                    <label for="uploadFolder">Upload to folder:</label>
+                    <select id="uploadFolder" class="folder-select">
+                        <option value="Main">Main</option>
+                    </select>
+                </div>
                 <div class="file-input-wrapper">
-                    <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
+        <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
                 </div>
                 <button class="upload-btn" onclick="uploadFile()">Upload File</button>
-                <div id="uploadMessage"></div>
+        <div id="uploadMessage"></div>
             </div>
             
             <div id="sound-list">
                 <div class="loading">Loading sounds...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Move Modal -->
+    <div id="moveModal" class="move-modal">
+        <div class="move-modal-content">
+            <h3>Move Sound</h3>
+            <p id="moveModalText">Move this sound to a different folder:</p>
+            <div class="folder-select-wrapper">
+                <label for="moveFolder">Target folder:</label>
+                <select id="moveFolder" class="folder-select">
+                    <option value="Main">Main</option>
+                </select>
+            </div>
+            <div class="move-modal-buttons">
+                <button class="cancel-btn" onclick="closeMoveModal()">Cancel</button>
+                <button class="move-confirm-btn" onclick="confirmMove()">Move</button>
             </div>
         </div>
     </div>
@@ -515,7 +723,7 @@ async function fetchSounds() {
             return;
         }
         
-        list.innerHTML = '';
+    list.innerHTML = '';
         
         // Sort folder names (Main first, then alphabetically)
         const folderNames = Object.keys(soundsByFolder).sort((a, b) => {
@@ -539,14 +747,20 @@ async function fetchSounds() {
             const soundsGrid = document.createElement('div');
             soundsGrid.className = 'sounds-grid';
             
-            for (const sound of sounds) {
+                        for (const sound of sounds) {
                 const card = document.createElement('div');
                 card.className = 'sound-card';
                 
                 const btn = document.createElement('button');
                 btn.textContent = sound.display_name;
                 btn.className = "sound-btn";
-                btn.onclick = () => play(sound.full_path);
+                btn.onclick = () => {
+                    if (document.getElementById('sound-list').classList.contains('organize-mode')) {
+                        openMoveModal(sound.display_name, sound.full_path);
+                    } else {
+                        play(sound.full_path);
+                    }
+                };
                 
                 card.appendChild(btn);
                 soundsGrid.appendChild(card);
@@ -584,11 +798,11 @@ async function play(filename) {
             }, 2000);
         }
         
-        await fetch('/play', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({filename})
-        });
+    await fetch('/play', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({filename})
+    });
     } catch (error) {
         console.error('Error playing sound:', error);
     }
@@ -617,6 +831,25 @@ function toggleUpload() {
     }
 }
 
+function toggleOrganize() {
+    const soundList = document.getElementById('sound-list');
+    const organizeBtn = document.getElementById('organizeBtn');
+    
+    if (soundList.classList.contains('organize-mode')) {
+        soundList.classList.remove('organize-mode');
+        organizeBtn.textContent = 'Organize';
+        organizeBtn.style.background = 'linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%)';
+        organizeBtn.style.borderColor = '#444';
+        organizeBtn.style.color = '#e6e6e6';
+    } else {
+        soundList.classList.add('organize-mode');
+        organizeBtn.textContent = 'Exit Organize';
+        organizeBtn.style.background = 'linear-gradient(135deg, #00ff88 0%, #00cc6a 100%)';
+        organizeBtn.style.borderColor = '#00ff88';
+        organizeBtn.style.color = '#1a1a2e';
+    }
+}
+
 async function uploadFile() {
     const fileInput = document.getElementById('audioFile');
     const messageDiv = document.getElementById('uploadMessage');
@@ -633,6 +866,7 @@ async function uploadFile() {
     
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
+    formData.append('folder', document.getElementById('uploadFolder').value);
     
     try {
         const response = await fetch('/upload', {
@@ -670,7 +904,110 @@ function showMessage(message, type) {
     }, 5000);
 }
 
-window.onload = fetchSounds;
+// Global variables for move functionality
+let currentMoveFile = null;
+let currentMovePath = null;
+
+async function loadFolders() {
+    try {
+        const response = await fetch('/folders');
+        const folders = await response.json();
+        
+        // Update upload folder dropdown
+        const uploadFolder = document.getElementById('uploadFolder');
+        uploadFolder.innerHTML = '';
+        folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder;
+            option.textContent = folder;
+            uploadFolder.appendChild(option);
+        });
+        
+        // Update move folder dropdown
+        const moveFolder = document.getElementById('moveFolder');
+        moveFolder.innerHTML = '';
+        folders.forEach(folder => {
+            const option = document.createElement('option');
+            option.value = folder;
+            option.textContent = folder;
+            moveFolder.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading folders:', error);
+    }
+}
+
+function openMoveModal(displayName, fullPath) {
+    currentMoveFile = displayName;
+    currentMovePath = fullPath;
+    
+    const modal = document.getElementById('moveModal');
+    const modalText = document.getElementById('moveModalText');
+    modalText.textContent = `Move "${displayName}" to a different folder:`;
+    
+    modal.style.display = 'block';
+}
+
+function closeMoveModal() {
+    const modal = document.getElementById('moveModal');
+    modal.style.display = 'none';
+    currentMoveFile = null;
+    currentMovePath = null;
+    
+    // Exit organize mode when closing the modal
+    const soundList = document.getElementById('sound-list');
+    const organizeBtn = document.getElementById('organizeBtn');
+    
+    if (soundList.classList.contains('organize-mode')) {
+        soundList.classList.remove('organize-mode');
+        organizeBtn.textContent = 'Organize';
+        organizeBtn.style.background = 'linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%)';
+        organizeBtn.style.borderColor = '#444';
+        organizeBtn.style.color = '#e6e6e6';
+    }
+}
+
+async function confirmMove() {
+    if (!currentMovePath) return;
+    
+    const targetFolder = document.getElementById('moveFolder').value;
+    
+    try {
+        const response = await fetch('/move', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                source_path: currentMovePath,
+                target_folder: targetFolder
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage(`File moved successfully to ${targetFolder}`, 'success');
+            closeMoveModal();
+            fetchSounds(); // Refresh the sound list
+        } else {
+            showMessage(`Move failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showMessage(`Move failed: ${error.message}`, 'error');
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('moveModal');
+    if (event.target === modal) {
+        closeMoveModal();
+    }
+});
+
+window.onload = function() {
+    fetchSounds();
+    loadFolders();
+};
 </script>
 </body>
 </html>
