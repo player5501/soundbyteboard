@@ -189,14 +189,104 @@ def get_folders():
     folders.sort()
     return jsonify(folders)
 
+@app.route('/manifest.json')
+def manifest():
+    return jsonify({
+        "name": "SoundByteBoard",
+        "short_name": "SoundBoard",
+        "description": "A portable soundboard for playing audio clips",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#0f0f23",
+        "theme_color": "#0f0f23",
+        "orientation": "portrait",
+        "icons": [
+            {
+                "src": "/icon-192.png",
+                "sizes": "192x192",
+                "type": "image/png",
+                "purpose": "any maskable"
+            },
+            {
+                "src": "/icon-512.png",
+                "sizes": "512x512",
+                "type": "image/png",
+                "purpose": "any maskable"
+            }
+        ]
+    })
+
+@app.route('/sw.js')
+def service_worker():
+    return app.response_class(
+        '''
+        const CACHE_NAME = 'soundboard-v1';
+        const urlsToCache = [
+            '/',
+            '/manifest.json'
+        ];
+
+        self.addEventListener('install', function(event) {
+            event.waitUntil(
+                caches.open(CACHE_NAME)
+                    .then(function(cache) {
+                        return cache.addAll(urlsToCache);
+                    })
+            );
+        });
+
+        self.addEventListener('fetch', function(event) {
+            event.respondWith(
+                caches.match(event.request)
+                    .then(function(response) {
+                        if (response) {
+                            return response;
+                        }
+                        return fetch(event.request);
+                    }
+                )
+            );
+        });
+        ''',
+        mimetype='application/javascript'
+    )
+
+@app.route('/icon-192.png')
+def icon_192():
+    # Return a simple 192x192 icon (you can replace this with a real icon)
+    return app.response_class(
+        '<svg width="192" height="192" xmlns="http://www.w3.org/2000/svg"><rect width="192" height="192" fill="#0f0f23"/><text x="96" y="96" text-anchor="middle" dy=".3em" fill="#00ff88" font-family="monospace" font-size="24">🎵</text></svg>',
+        mimetype='image/svg+xml'
+    )
+
+@app.route('/icon-512.png')
+def icon_512():
+    # Return a simple 512x512 icon (you can replace this with a real icon)
+    return app.response_class(
+        '<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" fill="#0f0f23"/><text x="256" y="256" text-anchor="middle" dy=".3em" fill="#00ff88" font-family="monospace" font-size="64">🎵</text></svg>',
+        mimetype='image/svg+xml'
+    )
+
 
 INDEX_HTML = '''
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soundboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SoundByteBoard">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f0f23">
+    <meta name="msapplication-TileColor" content="#0f0f23">
+    <meta name="msapplication-config" content="none">
+    <title>SoundByteBoard</title>
+    
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
     <style>
         * {
             margin: 0;
@@ -634,6 +724,42 @@ INDEX_HTML = '''
                 padding: 15px;
             }
         }
+
+        /* Mobile Web App Specific */
+        @media (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+                padding-left: env(safe-area-inset-left);
+                padding-right: env(safe-area-inset-right);
+            }
+        }
+
+        /* Touch-friendly improvements */
+        .sound-btn {
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .control-btn {
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        .upload-btn {
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+
+        /* Prevent zoom on input focus */
+        input[type="file"] {
+            font-size: 16px;
+        }
+
+        /* Better touch targets */
+        .folder-select {
+            min-height: 44px;
+        }
     </style>
 </head>
 <body>
@@ -983,6 +1109,19 @@ document.addEventListener('click', function(event) {
         closeMoveModal();
     }
 });
+
+// Register service worker for PWA functionality
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+            .then(function(registration) {
+                console.log('ServiceWorker registration successful');
+            })
+            .catch(function(err) {
+                console.log('ServiceWorker registration failed');
+            });
+    });
+}
 
 window.onload = function() {
     fetchSounds();
