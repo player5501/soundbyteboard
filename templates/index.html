@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SoundByteBoard">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#0f0f23">
+    <meta name="msapplication-TileColor" content="#0f0f23">
+    <meta name="msapplication-config" content="none">
+    <title>SoundByteBoard</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SoundByteBoard</h1>
+        </div>
+        <div class="content">
+            <div class="controls">
+                <button class="control-btn success" onclick="fetchSounds()">Refresh</button>
+                <button class="control-btn danger" onclick="stopAll()">Stop All</button>
+                <button class="control-btn" onclick="toggleUpload()">Upload</button>
+                <button class="control-btn" onclick="toggleOptions()">Options</button>
+            </div>
+            <div class="upload-section">
+                <h3>Upload Audio File</h3>
+                <div class="folder-select-wrapper">
+                    <label for="uploadFolder">Upload to folder:</label>
+                    <select id="uploadFolder" class="folder-select">
+                        <option value="Main">Main</option>
+                    </select>
+                </div>
+                <div class="file-input-wrapper">
+                    <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
+                </div>
+                <button class="upload-btn" onclick="uploadFile()">Upload File</button>
+                <div id="uploadMessage"></div>
+            </div>
+            <div class="options-section">
+                <h3>Options</h3>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="toggleOrganize()" id="organizeBtn">
+                        <span class="option-text">Organize Files</span>
+                        <span class="option-desc">Move files between folders</span>
+                    </button>
+                    <!-- Easy to add more options here -->
+                    <!-- <button class="option-btn" onclick="someFunction()">
+                        <span class="option-text">Another Option</span>
+                        <span class="option-desc">Description of the option</span>
+                    </button> -->
+                </div>
+            </div>
+            <div id="sound-list">
+                <div class="loading">Loading sounds...</div>
+            </div>
+        </div>
+    </div>
+    <!-- Move Modal -->
+    <div id="moveModal" class="move-modal">
+        <div class="move-modal-content">
+            <h3>Move Sound</h3>
+            <p id="moveModalText">Move this sound to a different folder:</p>
+            <div class="folder-select-wrapper">
+                <label for="moveFolder">Target folder:</label>
+                <select id="moveFolder" class="folder-select">
+                    <option value="Main">Main</option>
+                </select>
+            </div>
+            <div class="move-modal-buttons">
+                <button class="cancel-btn" onclick="closeMoveModal()">Cancel</button>
+                <button class="move-confirm-btn" onclick="confirmMove()">Move</button>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
