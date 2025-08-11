@@ -183,10 +183,16 @@ function toggleOrganize() {
         soundList.classList.remove('organize-mode');
         organizeBtn.classList.remove('active');
         organizeBtn.querySelector('.option-text').textContent = 'Organize Files';
+        organizeBtn.style.background = 'linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%)';
+        organizeBtn.style.borderColor = '#444';
+        organizeBtn.style.color = '#e6e6e6';
     } else {
         soundList.classList.add('organize-mode');
         organizeBtn.classList.add('active');
         organizeBtn.querySelector('.option-text').textContent = 'Exit Organize';
+        organizeBtn.style.background = 'linear-gradient(135deg, #ff4757 0%, #ff3742 100%)';
+        organizeBtn.style.borderColor = '#ff4757';
+        organizeBtn.style.color = 'white';
     }
 }
 
@@ -300,7 +306,8 @@ function closeMoveModal() {
     
     if (soundList.classList.contains('organize-mode')) {
         soundList.classList.remove('organize-mode');
-        organizeBtn.textContent = 'Organize';
+        organizeBtn.classList.remove('active');
+        organizeBtn.querySelector('.option-text').textContent = 'Organize Files';
         organizeBtn.style.background = 'linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%)';
         organizeBtn.style.borderColor = '#444';
         organizeBtn.style.color = '#e6e6e6';
