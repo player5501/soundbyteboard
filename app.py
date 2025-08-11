@@ -3,7 +3,7 @@ import os
 import argparse
 from pathlib import Path
 import pygame
-from flask import Flask, request, jsonify, render_template_string
+from flask import Flask, render_template, request, jsonify, render_template_string
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
