@@ -220,6 +220,6 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--port', type=int, default=5000,
                         help='Port to run the web app on (default: 5000)')
     args = parser.parse_args()
-    SOUNDS_DIR = args.sounds_dir
+    SOUNDS_DIR = os.path.abspath(args.sounds_dir)
 
     app.run(host='0.0.0.0', port=args.port)
