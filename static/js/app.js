@@ -87,13 +87,49 @@ async function play(filename) {
             }, 2000);
         }
         
-        await fetch('/play', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({filename})
-        });
+        const remotePlay = document.getElementById('remotePlay').checked;
+        const localPlay = document.getElementById('localPlay').checked;
+        
+        if (remotePlay) {
+            // Play on server
+            await fetch('/play', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({filename})
+            });
+        }
+        
+        if (localPlay) {
+            // Play in browser
+            playLocalAudio(filename);
+        }
     } catch (error) {
         console.error('Error playing sound:', error);
+    }
+}
+
+function playLocalAudio(filename) {
+    try {
+        // Create audio element
+        const audio = new Audio(`/audio/${filename}`);
+        audio.volume = 1.0;
+        
+        // Play the audio
+        audio.play().catch(error => {
+            console.error('Error playing local audio:', error);
+        });
+        
+        // Clean up after playback
+        audio.addEventListener('ended', () => {
+            audio.remove();
+        });
+        
+        audio.addEventListener('error', (error) => {
+            console.error('Audio playback error:', error);
+            audio.remove();
+        });
+    } catch (error) {
+        console.error('Error creating audio element:', error);
     }
 }
 
@@ -324,4 +360,25 @@ if ('serviceWorker' in navigator) {
 window.onload = function() {
     fetchSounds();
     loadFolders();
+    setupPlayModeCheckboxes();
 };
+
+function setupPlayModeCheckboxes() {
+    const remotePlay = document.getElementById('remotePlay');
+    const localPlay = document.getElementById('localPlay');
+    
+    // Ensure at least one play mode is selected
+    remotePlay.addEventListener('change', function() {
+        if (!remotePlay.checked && !localPlay.checked) {
+            // If both are unchecked, force remote play to be checked
+            remotePlay.checked = true;
+        }
+    });
+    
+    localPlay.addEventListener('change', function() {
+        if (!remotePlay.checked && !localPlay.checked) {
+            // If both are unchecked, force local play to be checked
+            localPlay.checked = true;
+        }
+    });
+}

@@ -3,7 +3,7 @@ import os
 import argparse
 from pathlib import Path
 import pygame
-from flask import Flask, render_template, request, jsonify, render_template_string
+from flask import Flask, render_template, request, jsonify, render_template_string, send_file
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -173,6 +173,18 @@ def move_file():
         return jsonify({'status': 'File moved successfully'})
     except Exception as e:
         return jsonify({'error': f'Failed to move file: {str(e)}'}), 500
+
+@app.route('/audio/<path:filename>')
+def serve_audio(filename):
+    # Prevent directory traversal
+    safe_path = os.path.normpath(os.path.join(SOUNDS_DIR, filename))
+    if not safe_path.startswith(os.path.abspath(SOUNDS_DIR)):
+        return jsonify({'error': 'Invalid path'}), 400
+    
+    if not os.path.exists(safe_path):
+        return jsonify({'error': 'File not found'}), 404
+    
+    return send_file(safe_path)
 
 @app.route('/folders')
 def get_folders():
