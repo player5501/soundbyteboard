@@ -338,11 +338,73 @@ async function confirmMove() {
 
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
-    const modal = document.getElementById('moveModal');
-    if (event.target === modal) {
+    const moveModal = document.getElementById('moveModal');
+    const createCategoryModal = document.getElementById('createCategoryModal');
+    
+    if (event.target === moveModal) {
         closeMoveModal();
     }
+    
+    if (event.target === createCategoryModal) {
+        closeCreateCategoryModal();
+    }
 });
+
+function openCreateCategoryModal() {
+    const modal = document.getElementById('createCategoryModal');
+    const categoryInput = document.getElementById('categoryName');
+    
+    // Clear any previous input
+    categoryInput.value = '';
+    
+    // Show modal and focus on input
+    modal.style.display = 'block';
+    categoryInput.focus();
+    
+    // Add enter key listener
+    categoryInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            confirmCreateCategory();
+        }
+    });
+}
+
+function closeCreateCategoryModal() {
+    const modal = document.getElementById('createCategoryModal');
+    const categoryInput = document.getElementById('categoryName');
+    
+    modal.style.display = 'none';
+    categoryInput.value = '';
+}
+
+async function confirmCreateCategory() {
+    const categoryName = document.getElementById('categoryName').value.trim();
+    
+    if (!categoryName) {
+        showMessage('Please enter a category name', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/create-category', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({category_name: categoryName})
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage(result.status, 'success');
+            closeCreateCategoryModal();
+            loadFolders(); // Refresh folder lists
+        } else {
+            showMessage(`Failed to create category: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showMessage(`Failed to create category: ${error.message}`, 'error');
+    }
+}
 
 // Register service worker for PWA functionality
 if ('serviceWorker' in navigator) {

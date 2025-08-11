@@ -69,6 +69,10 @@
                         <span class="option-text">Organize Files</span>
                         <span class="option-desc">Move files between folders</span>
                     </button>
+                    <button class="option-btn" onclick="openCreateCategoryModal()" id="createCategoryBtn">
+                        <span class="option-text">Create Category</span>
+                        <span class="option-desc">Create a new folder for organizing sounds</span>
+                    </button>
                     <!-- Easy to add more options here -->
                     <!-- <button class="option-btn" onclick="someFunction()">
                         <span class="option-text">Another Option</span>
@@ -95,6 +99,22 @@
             <div class="move-modal-buttons">
                 <button class="cancel-btn" onclick="closeMoveModal()">Cancel</button>
                 <button class="move-confirm-btn" onclick="confirmMove()">Move</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Category Modal -->
+    <div id="createCategoryModal" class="move-modal">
+        <div class="move-modal-content">
+            <h3>Create New Category</h3>
+            <p>Enter a name for the new category:</p>
+            <div class="folder-select-wrapper">
+                <label for="categoryName">Category name:</label>
+                <input type="text" id="categoryName" class="folder-select" placeholder="Enter category name..." maxlength="50">
+            </div>
+            <div class="move-modal-buttons">
+                <button class="cancel-btn" onclick="closeCreateCategoryModal()">Cancel</button>
+                <button class="move-confirm-btn" onclick="confirmCreateCategory()">Create</button>
             </div>
         </div>
     </div>

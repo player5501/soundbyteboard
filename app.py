@@ -186,6 +186,31 @@ def serve_audio(filename):
     
     return send_file(safe_path)
 
+@app.route('/create-category', methods=['POST'])
+def create_category():
+    data = request.get_json()
+    category_name = data.get('category_name')
+    
+    if not category_name:
+        return jsonify({'error': 'Category name is required'}), 400
+    
+    # Sanitize the category name to prevent directory traversal
+    category_name = secure_filename(category_name.strip())
+    
+    if not category_name:
+        return jsonify({'error': 'Invalid category name'}), 400
+    
+    # Check if category already exists
+    category_path = os.path.join(SOUNDS_DIR, category_name)
+    if os.path.exists(category_path):
+        return jsonify({'error': f'Category "{category_name}" already exists'}), 400
+    
+    try:
+        os.makedirs(category_path, exist_ok=False)
+        return jsonify({'status': f'Category "{category_name}" created successfully'})
+    except Exception as e:
+        return jsonify({'error': f'Failed to create category: {str(e)}'}), 500
+
 @app.route('/folders')
 def get_folders():
     folders = ['Main']  # Always include Main
