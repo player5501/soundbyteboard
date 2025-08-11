@@ -350,6 +350,83 @@ INDEX_HTML = '''
             animation: slideDown 0.3s ease;
         }
 
+        .options-section {
+            background: linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid #444;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        .options-section h3 {
+            color: #00ff88;
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%);
+            color: #e6e6e6;
+            border: 1px solid #444;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .option-btn:hover {
+            border-color: #00ff88;
+            background: linear-gradient(135deg, #3d3d54 0%, #2e2e3e 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .option-btn.active {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            border-color: #00ff88;
+            color: #1a1a2e;
+        }
+
+        .option-btn.active .option-text {
+            color: #1a1a2e;
+        }
+
+        .option-btn.active .option-desc {
+            color: #1a1a2e;
+            opacity: 0.9;
+        }
+
+        .option-icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .option-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .option-desc {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
         @keyframes slideDown {
             from {
                 opacity: 0;
@@ -773,10 +850,10 @@ INDEX_HTML = '''
                 <button class="control-btn success" onclick="fetchSounds()">Refresh</button>
                 <button class="control-btn danger" onclick="stopAll()">Stop All</button>
                 <button class="control-btn" onclick="toggleUpload()">Upload</button>
-                <button class="control-btn" onclick="toggleOrganize()" id="organizeBtn">Organize</button>
+                <button class="control-btn" onclick="toggleOptions()">Options</button>
             </div>
     
-    <div class="upload-section">
+                <div class="upload-section">
                 <h3>Upload Audio File</h3>
                 <div class="folder-select-wrapper">
                     <label for="uploadFolder">Upload to folder:</label>
@@ -785,10 +862,25 @@ INDEX_HTML = '''
                     </select>
                 </div>
                 <div class="file-input-wrapper">
-        <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
+                    <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
                 </div>
                 <button class="upload-btn" onclick="uploadFile()">Upload File</button>
-        <div id="uploadMessage"></div>
+                <div id="uploadMessage"></div>
+            </div>
+            
+            <div class="options-section">
+                <h3>Options</h3>
+                <div class="options-grid">
+                    <button class="option-btn" onclick="toggleOrganize()" id="organizeBtn">
+                        <span class="option-text">Organize Files</span>
+                        <span class="option-desc">Move files between folders</span>
+                    </button>
+                    <!-- Easy to add more options here -->
+                    <!-- <button class="option-btn" onclick="someFunction()">
+                        <span class="option-text">Another Option</span>
+                        <span class="option-desc">Description of the option</span>
+                    </button> -->
+                </div>
             </div>
             
             <div id="sound-list">
@@ -937,22 +1029,35 @@ function toggleUpload() {
     }
 }
 
+function toggleOptions() {
+    const optionsSection = document.querySelector('.options-section');
+    const optionsBtn = document.querySelector('.control-btn[onclick="toggleOptions()"]');
+    
+    if (optionsSection.style.display === 'none' || optionsSection.style.display === '') {
+        optionsSection.style.display = 'block';
+        optionsBtn.textContent = 'Close Options';
+        optionsBtn.style.background = 'linear-gradient(135deg, #ff4757 0%, #ff3742 100%)';
+        optionsBtn.style.borderColor = '#ff4757';
+    } else {
+        optionsSection.style.display = 'none';
+        optionsBtn.textContent = 'Options';
+        optionsBtn.style.background = 'linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%)';
+        optionsBtn.style.borderColor = '#444';
+    }
+}
+
 function toggleOrganize() {
     const soundList = document.getElementById('sound-list');
     const organizeBtn = document.getElementById('organizeBtn');
     
     if (soundList.classList.contains('organize-mode')) {
         soundList.classList.remove('organize-mode');
-        organizeBtn.textContent = 'Organize';
-        organizeBtn.style.background = 'linear-gradient(135deg, #2d2d44 0%, #1e1e2e 100%)';
-        organizeBtn.style.borderColor = '#444';
-        organizeBtn.style.color = '#e6e6e6';
+        organizeBtn.classList.remove('active');
+        organizeBtn.querySelector('.option-text').textContent = 'Organize Files';
     } else {
         soundList.classList.add('organize-mode');
-        organizeBtn.textContent = 'Exit Organize';
-        organizeBtn.style.background = 'linear-gradient(135deg, #00ff88 0%, #00cc6a 100%)';
-        organizeBtn.style.borderColor = '#00ff88';
-        organizeBtn.style.color = '#1a1a2e';
+        organizeBtn.classList.add('active');
+        organizeBtn.querySelector('.option-text').textContent = 'Exit Organize';
     }
 }
 
