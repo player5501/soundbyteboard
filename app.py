@@ -215,7 +215,7 @@ def icon_512():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Soundboard Flask App")
-    parser.add_argument('--sounds-dir', type=str, required=True,
+    parser.add_argument('--sounds-dir', "-d", "--dir", type=str, required=True,
                         help='Path to the directory containing sound files')
     parser.add_argument('-p', '--port', type=int, default=5000,
                         help='Port to run the web app on (default: 5000)')
