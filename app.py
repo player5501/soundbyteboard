@@ -194,38 +194,7 @@ def manifest():
 
 @app.route('/sw.js')
 def service_worker():
-    return app.response_class(
-        '''
-        const CACHE_NAME = 'soundboard-v1';
-        const urlsToCache = [
-            '/',
-            '/manifest.json'
-        ];
-
-        self.addEventListener('install', function(event) {
-            event.waitUntil(
-                caches.open(CACHE_NAME)
-                    .then(function(cache) {
-                        return cache.addAll(urlsToCache);
-                    })
-            );
-        });
-
-        self.addEventListener('fetch', function(event) {
-            event.respondWith(
-                caches.match(event.request)
-                    .then(function(response) {
-                        if (response) {
-                            return response;
-                        }
-                        return fetch(event.request);
-                    }
-                )
-            );
-        });
-        ''',
-        mimetype='application/javascript'
-    )
+    return app.send_static_file('js/sw.js')
 
 @app.route('/icon-192.png')
 def icon_192():
