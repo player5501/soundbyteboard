@@ -211,6 +211,76 @@ def create_category():
     except Exception as e:
         return jsonify({'error': f'Failed to create category: {str(e)}'}), 500
 
+@app.route('/empty-categories')
+def get_empty_categories():
+    empty_categories = []
+    
+    try:
+        for item in os.listdir(SOUNDS_DIR):
+            item_path = os.path.join(SOUNDS_DIR, item)
+            if os.path.isdir(item_path):
+                # Check if directory is empty (no files, only subdirectories are ignored)
+                files = [f for f in os.listdir(item_path) if os.path.isfile(os.path.join(item_path, f))]
+                if not files:
+                    empty_categories.append(item)
+    except OSError as e:
+        print(f"Error reading sounds directory: {e}")
+    
+    empty_categories.sort()
+    return jsonify(empty_categories)
+
+@app.route('/remove-categories', methods=['POST'])
+def remove_categories():
+    data = request.get_json()
+    categories_to_remove = data.get('categories', [])
+    
+    if not categories_to_remove:
+        return jsonify({'error': 'No categories specified'}), 400
+    
+    removed_categories = []
+    failed_categories = []
+    
+    for category_name in categories_to_remove:
+        # Validate category name to prevent directory traversal
+        safe_category_name = secure_filename(category_name.strip())
+        if not safe_category_name or safe_category_name != category_name:
+            failed_categories.append(f"{category_name} (invalid name)")
+            continue
+        
+        category_path = os.path.join(SOUNDS_DIR, category_name)
+        
+        # Check if category exists and is empty
+        if not os.path.exists(category_path):
+            failed_categories.append(f"{category_name} (not found)")
+            continue
+        
+        if not os.path.isdir(category_path):
+            failed_categories.append(f"{category_name} (not a directory)")
+            continue
+        
+        # Double-check that it's still empty before removing
+        files = [f for f in os.listdir(category_path) if os.path.isfile(os.path.join(category_path, f))]
+        if files:
+            failed_categories.append(f"{category_name} (not empty)")
+            continue
+        
+        try:
+            import shutil
+            shutil.rmtree(category_path)
+            removed_categories.append(category_name)
+        except Exception as e:
+            failed_categories.append(f"{category_name} (error: {str(e)})")
+    
+    result = {
+        'removed': removed_categories,
+        'failed': failed_categories
+    }
+    
+    if failed_categories:
+        return jsonify(result), 207  # Multi-status
+    else:
+        return jsonify(result)
+
 @app.route('/folders')
 def get_folders():
     folders = ['Main']  # Always include Main

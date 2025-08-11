@@ -347,6 +347,7 @@ async function confirmMove() {
 document.addEventListener('click', function(event) {
     const moveModal = document.getElementById('moveModal');
     const createCategoryModal = document.getElementById('createCategoryModal');
+    const removeEmptyCategoriesModal = document.getElementById('removeEmptyCategoriesModal');
     
     if (event.target === moveModal) {
         closeMoveModal();
@@ -354,6 +355,10 @@ document.addEventListener('click', function(event) {
     
     if (event.target === createCategoryModal) {
         closeCreateCategoryModal();
+    }
+    
+    if (event.target === removeEmptyCategoriesModal) {
+        closeRemoveEmptyCategoriesModal();
     }
 });
 
@@ -410,6 +415,124 @@ async function confirmCreateCategory() {
         }
     } catch (error) {
         showMessage(`Failed to create category: ${error.message}`, 'error');
+    }
+}
+
+function openRemoveEmptyCategoriesModal() {
+    const modal = document.getElementById('removeEmptyCategoriesModal');
+    const categoriesList = document.getElementById('emptyCategoriesList');
+    const removeBtn = document.getElementById('removeCategoriesBtn');
+    
+    // Show modal
+    modal.style.display = 'block';
+    
+    // Reset button state
+    removeBtn.disabled = true;
+    
+    // Load empty categories
+    loadEmptyCategories();
+}
+
+function closeRemoveEmptyCategoriesModal() {
+    const modal = document.getElementById('removeEmptyCategoriesModal');
+    modal.style.display = 'none';
+}
+
+async function loadEmptyCategories() {
+    const categoriesList = document.getElementById('emptyCategoriesList');
+    
+    try {
+        const response = await fetch('/empty-categories');
+        const emptyCategories = await response.json();
+        
+        if (emptyCategories.length === 0) {
+            categoriesList.innerHTML = '<div class="no-empty-categories">No empty categories found</div>';
+            return;
+        }
+        
+        categoriesList.innerHTML = '';
+        
+        emptyCategories.forEach(category => {
+            const item = document.createElement('div');
+            item.className = 'category-item';
+            
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `category-${category}`;
+            checkbox.value = category;
+            checkbox.addEventListener('change', updateRemoveButton);
+            
+            const label = document.createElement('label');
+            label.htmlFor = `category-${category}`;
+            label.textContent = category;
+            
+            item.appendChild(checkbox);
+            item.appendChild(label);
+            categoriesList.appendChild(item);
+        });
+        
+    } catch (error) {
+        categoriesList.innerHTML = '<div class="no-empty-categories">Error loading empty categories</div>';
+        console.error('Error loading empty categories:', error);
+    }
+}
+
+function updateRemoveButton() {
+    const checkboxes = document.querySelectorAll('#emptyCategoriesList input[type="checkbox"]');
+    const removeBtn = document.getElementById('removeCategoriesBtn');
+    
+    const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+    removeBtn.disabled = checkedCount === 0;
+    
+    if (checkedCount > 0) {
+        removeBtn.textContent = `Remove Selected (${checkedCount})`;
+    } else {
+        removeBtn.textContent = 'Remove Selected';
+    }
+}
+
+async function confirmRemoveEmptyCategories() {
+    const checkboxes = document.querySelectorAll('#emptyCategoriesList input[type="checkbox"]:checked');
+    const categoriesToRemove = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (categoriesToRemove.length === 0) {
+        showMessage('Please select at least one category to remove', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/remove-categories', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({categories: categoriesToRemove})
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok || response.status === 207) { // 207 is Multi-Status
+            let message = '';
+            
+            if (result.removed && result.removed.length > 0) {
+                message += `Successfully removed: ${result.removed.join(', ')}`;
+            }
+            
+            if (result.failed && result.failed.length > 0) {
+                if (message) message += '\n';
+                message += `Failed to remove: ${result.failed.join(', ')}`;
+            }
+            
+            if (result.removed && result.removed.length > 0) {
+                showMessage(message, 'success');
+                closeRemoveEmptyCategoriesModal();
+                loadFolders(); // Refresh folder lists
+            } else {
+                showMessage(message, 'error');
+            }
+        } else {
+            showMessage(`Failed to remove categories: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showMessage(`Failed to remove categories: ${error.message}`, 'error');
     }
 }
 

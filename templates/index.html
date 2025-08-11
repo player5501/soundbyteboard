@@ -73,6 +73,10 @@
                         <span class="option-text">Create Category</span>
                         <span class="option-desc">Create a new folder for organizing sounds</span>
                     </button>
+                    <button class="option-btn" onclick="openRemoveEmptyCategoriesModal()" id="removeEmptyCategoriesBtn">
+                        <span class="option-text">Remove Empty Categories</span>
+                        <span class="option-desc">Delete folders that contain no sound files</span>
+                    </button>
                     <!-- Easy to add more options here -->
                     <!-- <button class="option-btn" onclick="someFunction()">
                         <span class="option-text">Another Option</span>
@@ -115,6 +119,21 @@
             <div class="move-modal-buttons">
                 <button class="cancel-btn" onclick="closeCreateCategoryModal()">Cancel</button>
                 <button class="move-confirm-btn" onclick="confirmCreateCategory()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove Empty Categories Modal -->
+    <div id="removeEmptyCategoriesModal" class="move-modal">
+        <div class="move-modal-content">
+            <h3>Remove Empty Categories</h3>
+            <p>Select the empty categories you want to delete:</p>
+            <div id="emptyCategoriesList" class="empty-categories-list">
+                <div class="loading">Loading empty categories...</div>
+            </div>
+            <div class="move-modal-buttons">
+                <button class="cancel-btn" onclick="closeRemoveEmptyCategoriesModal()">Cancel</button>
+                <button class="move-confirm-btn" onclick="confirmRemoveEmptyCategories()" id="removeCategoriesBtn" disabled>Remove Selected</button>
             </div>
         </div>
     </div>
