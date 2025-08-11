@@ -299,6 +299,76 @@ body {
     background: #00cc6a;
 }
 
+/* Upload Tabs */
+.upload-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #444;
+}
+
+.upload-tab {
+    background: #2d2d44;
+    color: #e6e6e6;
+    border: none;
+    padding: 12px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 2px solid transparent;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.upload-tab:hover {
+    background: #3d3d54;
+}
+
+.upload-tab.active {
+    background: #1e1e2e;
+    border-bottom-color: #00ff88;
+    color: #00ff88;
+}
+
+.upload-tab-content {
+    display: none;
+}
+
+.upload-tab-content.active {
+    display: block;
+}
+
+/* URL Input */
+.url-input-wrapper {
+    margin-bottom: 20px;
+}
+
+.url-input-wrapper label {
+    color: #e6e6e6;
+    font-size: 1rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.url-input {
+    width: 100%;
+    padding: 12px;
+    background: #2d2d44;
+    border: 1px solid #444;
+    border-radius: 8px;
+    color: #e6e6e6;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.url-input:hover {
+    border-color: #00ff88;
+}
+
+.url-input:focus {
+    outline: none;
+    border-color: #00ff88;
+    box-shadow: 0 0 0 2px rgba(0, 255, 136, 0.2);
+}
+
 .upload-btn {
     background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
     color: #1a1a2e;

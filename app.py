@@ -5,6 +5,8 @@ from pathlib import Path
 import pygame
 from flask import Flask, render_template, request, jsonify, render_template_string, send_file
 from werkzeug.utils import secure_filename
+import requests
+import urllib.parse
 
 app = Flask(__name__)
 pygame.mixer.init()
@@ -93,6 +95,96 @@ def upload_file():
     try:
         file.save(os.path.join(target_path, final_filename))
         return jsonify({'status': 'File uploaded successfully', 'filename': final_filename})
+    except Exception as e:
+        return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
+
+@app.route('/download-url', methods=['POST'])
+def download_from_url():
+    data = request.get_json()
+    url = data.get('url', '').strip()
+    target_folder = data.get('folder', 'Main')
+    
+    if not url:
+        return jsonify({'error': 'URL is required'}), 400
+    
+    # Validate URL format
+    try:
+        parsed_url = urllib.parse.urlparse(url)
+        if not parsed_url.scheme or not parsed_url.netloc:
+            return jsonify({'error': 'Invalid URL format'}), 400
+    except Exception:
+        return jsonify({'error': 'Invalid URL format'}), 400
+    
+    try:
+        # Download the file with a timeout
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()
+        
+        # Get filename from URL or Content-Disposition header
+        filename = None
+        
+        # Try to get filename from Content-Disposition header
+        content_disposition = response.headers.get('Content-Disposition', '')
+        if 'filename=' in content_disposition:
+            filename = content_disposition.split('filename=')[1].strip('"\'')
+        
+        # If no filename in header, try to extract from URL
+        if not filename:
+            filename = os.path.basename(urllib.parse.urlparse(url).path)
+        
+        # If still no filename, generate one
+        if not filename or '.' not in filename:
+            # Try to determine extension from content type
+            content_type = response.headers.get('Content-Type', '').lower()
+            if 'audio/mpeg' in content_type or 'audio/mp3' in content_type:
+                extension = '.mp3'
+            elif 'audio/wav' in content_type:
+                extension = '.wav'
+            elif 'audio/ogg' in content_type:
+                extension = '.ogg'
+            elif 'audio/flac' in content_type:
+                extension = '.flac'
+            else:
+                extension = '.mp3'  # Default fallback
+            
+            filename = f"downloaded_audio{extension}"
+        
+        # Validate that it's an audio file
+        if not is_audio_file(filename):
+            return jsonify({'error': 'URL does not point to a valid audio file'}), 400
+        
+        # Secure the filename
+        filename = secure_filename(filename)
+        
+        # Determine target path
+        if target_folder == 'Main':
+            target_path = SOUNDS_DIR
+        else:
+            target_path = os.path.join(SOUNDS_DIR, target_folder)
+            os.makedirs(target_path, exist_ok=True)
+        
+        # Handle filename conflicts
+        base_name = Path(filename).stem
+        extension = Path(filename).suffix
+        counter = 1
+        final_filename = filename
+        
+        while os.path.exists(os.path.join(target_path, final_filename)):
+            final_filename = f"{base_name}_{counter}{extension}"
+            counter += 1
+        
+        # Save the file
+        file_path = os.path.join(target_path, final_filename)
+        with open(file_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        
+        return jsonify({'status': 'File downloaded successfully', 'filename': final_filename})
+        
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Download timed out'}), 408
+    except requests.exceptions.RequestException as e:
+        return jsonify({'error': f'Failed to download file: {str(e)}'}), 400
     except Exception as e:
         return jsonify({'error': f'Failed to save file: {str(e)}'}), 500
 

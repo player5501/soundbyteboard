@@ -38,10 +38,30 @@
                         <option value="Main">Main</option>
                     </select>
                 </div>
-                <div class="file-input-wrapper">
-                    <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
+                
+                <!-- Upload Method Tabs -->
+                <div class="upload-tabs">
+                    <button class="upload-tab active" onclick="switchUploadTab('file')" id="fileTab">File Upload</button>
+                    <button class="upload-tab" onclick="switchUploadTab('url')" id="urlTab">URL Download</button>
                 </div>
-                <button class="upload-btn" onclick="uploadFile()">Upload File</button>
+                
+                <!-- File Upload Tab -->
+                <div class="upload-tab-content active" id="fileUploadContent">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="audioFile" accept=".wav,.mp3,.ogg,.flac,.aac,.m4a" />
+                    </div>
+                    <button class="upload-btn" onclick="uploadFile()">Upload File</button>
+                </div>
+                
+                <!-- URL Download Tab -->
+                <div class="upload-tab-content" id="urlDownloadContent">
+                    <div class="url-input-wrapper">
+                        <label for="audioUrl">Audio URL:</label>
+                        <input type="url" id="audioUrl" class="url-input" placeholder="https://example.com/audio.mp3" />
+                    </div>
+                    <button class="upload-btn" onclick="downloadFromUrl()">Download & Save</button>
+                </div>
+                
                 <div id="uploadMessage"></div>
             </div>
             <div class="options-section">

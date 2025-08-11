@@ -211,6 +211,26 @@ function toggleUpload() {
     }
 }
 
+function switchUploadTab(tab) {
+    // Update tab buttons
+    const fileTab = document.getElementById('fileTab');
+    const urlTab = document.getElementById('urlTab');
+    const fileContent = document.getElementById('fileUploadContent');
+    const urlContent = document.getElementById('urlDownloadContent');
+    
+    if (tab === 'file') {
+        fileTab.classList.add('active');
+        urlTab.classList.remove('active');
+        fileContent.classList.add('active');
+        urlContent.classList.remove('active');
+    } else {
+        urlTab.classList.add('active');
+        fileTab.classList.remove('active');
+        urlContent.classList.add('active');
+        fileContent.classList.remove('active');
+    }
+}
+
 function toggleOptions() {
     const optionsSection = document.querySelector('.options-section');
     const optionsBtn = document.querySelector('.control-btn[onclick="toggleOptions()"]');
@@ -252,7 +272,7 @@ function toggleOrganize() {
 async function uploadFile() {
     const fileInput = document.getElementById('audioFile');
     const messageDiv = document.getElementById('uploadMessage');
-    const uploadBtn = document.querySelector('.upload-btn');
+    const uploadBtn = document.querySelector('#fileUploadContent .upload-btn');
     
     if (!fileInput.files[0]) {
         showMessage('Please select a file to upload.', 'error');
@@ -288,6 +308,56 @@ async function uploadFile() {
         // Reset button state
         uploadBtn.innerHTML = 'Upload File';
         uploadBtn.disabled = false;
+    }
+}
+
+async function downloadFromUrl() {
+    const urlInput = document.getElementById('audioUrl');
+    const url = urlInput.value.trim();
+    const downloadBtn = document.querySelector('#urlDownloadContent .upload-btn');
+    
+    if (!url) {
+        showMessage('Please enter a URL to download.', 'error');
+        return;
+    }
+    
+    // Basic URL validation
+    try {
+        new URL(url);
+    } catch (error) {
+        showMessage('Please enter a valid URL.', 'error');
+        return;
+    }
+    
+    // Show loading state
+    downloadBtn.innerHTML = 'Downloading...';
+    downloadBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/download-url', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                url: url,
+                folder: document.getElementById('uploadFolder').value
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+            showMessage(`File downloaded successfully: ${result.filename}`, 'success');
+            urlInput.value = ''; // Clear the URL input
+            fetchSounds(); // Refresh the sound list
+        } else {
+            showMessage(`Download failed: ${result.error}`, 'error');
+        }
+    } catch (error) {
+        showMessage(`Download failed: ${error.message}`, 'error');
+    } finally {
+        // Reset button state
+        downloadBtn.innerHTML = 'Download & Save';
+        downloadBtn.disabled = false;
     }
 }
 
