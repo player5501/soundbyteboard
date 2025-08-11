@@ -114,6 +114,12 @@ function playLocalAudio(filename) {
         const audio = new Audio(`/audio/${filename}`);
         audio.volume = 1.0;
         
+        // Track audio elements for stopping
+        if (!window.currentAudioElements) {
+            window.currentAudioElements = [];
+        }
+        window.currentAudioElements.push(audio);
+        
         // Play the audio
         audio.play().catch(error => {
             console.error('Error playing local audio:', error);
@@ -121,12 +127,20 @@ function playLocalAudio(filename) {
         
         // Clean up after playback
         audio.addEventListener('ended', () => {
-            audio.remove();
+            // Remove from tracking array
+            const index = window.currentAudioElements.indexOf(audio);
+            if (index > -1) {
+                window.currentAudioElements.splice(index, 1);
+            }
         });
         
         audio.addEventListener('error', (error) => {
             console.error('Audio playback error:', error);
-            audio.remove();
+            // Remove from tracking array
+            const index = window.currentAudioElements.indexOf(audio);
+            if (index > -1) {
+                window.currentAudioElements.splice(index, 1);
+            }
         });
     } catch (error) {
         console.error('Error creating audio element:', error);
@@ -138,7 +152,46 @@ async function stop() {
 }
 
 async function stopAll() {
+    // Stop server-side sounds
     await fetch('/stopall', { method: 'POST' });
+    
+    // Stop all browser-side audio
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    
+    // Also stop any audio created via the Audio API
+    if (window.currentAudioElements) {
+        window.currentAudioElements.forEach(audio => {
+            if (audio && typeof audio.pause === 'function') {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        });
+        window.currentAudioElements = [];
+    }
+}
+
+async function stopLocal() {
+    // Stop only browser-side audio
+    const audioElements = document.querySelectorAll('audio');
+    audioElements.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    
+    // Also stop any audio created via the Audio API
+    if (window.currentAudioElements) {
+        window.currentAudioElements.forEach(audio => {
+            if (audio && typeof audio.pause === 'function') {
+                audio.pause();
+                audio.currentTime = 0;
+            }
+        });
+        window.currentAudioElements = [];
+    }
 }
 
 function toggleUpload() {
@@ -558,6 +611,16 @@ window.onload = function() {
 function setupPlayModeCheckboxes() {
     const remotePlay = document.getElementById('remotePlay');
     const localPlay = document.getElementById('localPlay');
+    const stopLocalBtn = document.getElementById('stopLocalBtn');
+    
+    // Function to update Stop Local button visibility
+    function updateStopLocalButton() {
+        if (localPlay.checked) {
+            stopLocalBtn.style.display = 'block';
+        } else {
+            stopLocalBtn.style.display = 'none';
+        }
+    }
     
     // Ensure at least one play mode is selected
     remotePlay.addEventListener('change', function() {
@@ -565,6 +628,7 @@ function setupPlayModeCheckboxes() {
             // If both are unchecked, force remote play to be checked
             remotePlay.checked = true;
         }
+        updateStopLocalButton();
     });
     
     localPlay.addEventListener('change', function() {
@@ -572,5 +636,9 @@ function setupPlayModeCheckboxes() {
             // If both are unchecked, force local play to be checked
             localPlay.checked = true;
         }
+        updateStopLocalButton();
     });
+    
+    // Initialize button visibility
+    updateStopLocalButton();
 }
