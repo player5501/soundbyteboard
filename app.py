@@ -48,7 +48,7 @@ def stopall_sound():
 
 @app.route('/')
 def index():
-    return render_template('templates/index.html')
+    return render_template('index.html')
 
 def is_audio_file(filename):
     audio_extensions = {'.wav', '.mp3', '.ogg', '.flac', '.aac', '.m4a'}
