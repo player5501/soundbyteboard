@@ -191,30 +191,7 @@ def get_folders():
 
 @app.route('/manifest.json')
 def manifest():
-    return jsonify({
-        "name": "SoundByteBoard",
-        "short_name": "SoundBoard",
-        "description": "A portable soundboard for playing audio clips",
-        "start_url": "/",
-        "display": "standalone",
-        "background_color": "#0f0f23",
-        "theme_color": "#0f0f23",
-        "orientation": "portrait",
-        "icons": [
-            {
-                "src": "/icon-192.png",
-                "sizes": "192x192",
-                "type": "image/png",
-                "purpose": "any maskable"
-            },
-            {
-                "src": "/icon-512.png",
-                "sizes": "512x512",
-                "type": "image/png",
-                "purpose": "any maskable"
-            }
-        ]
-    })
+    return app.send_static_file('json/manifest.json')
 
 @app.route('/sw.js')
 def service_worker():
